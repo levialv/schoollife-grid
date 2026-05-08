@@ -1,8 +1,9 @@
-// Bangumi 搜索（动画/电影/游戏走 lab.magiconch.com 代理）
-// 返回的 work 形状：{ id, title, cover, source: 'bangumi', subtitle? }
+// Bangumi 搜索（动画/电影/游戏直连官方 v0 API）
+// 封面经 wsrv.nl 代理拿到 CORS 头，避免 canvas 跨域污染。
 import { categoryByKey } from '../data/categories.js';
 
-const PROXY_BASE = 'https://lab.magiconch.com/api/bangumi/';
+const API_URL = 'https://api.bgm.tv/v0/search/subjects';
+const IMG_PROXY = 'https://wsrv.nl/?url=';
 
 const TYPE_BY_CAT = {
   anime: 2,
@@ -21,20 +22,25 @@ export async function searchBangumi(catKey, keyword, { signal, timeout = 4500 } 
   if (!type) throw new Error(`category ${catKey} not bangumi-typed`);
   if (!keyword || !keyword.trim()) return [];
 
-  // 取消上一次
   if (pending) pending.abort();
   pending = new AbortController();
   const ctrl = pending;
-  // 外部 signal 取消时一并 abort
   if (signal) {
     if (signal.aborted) ctrl.abort();
     else signal.addEventListener('abort', () => ctrl.abort(), { once: true });
   }
   const timer = setTimeout(() => ctrl.abort(), timeout);
   try {
-    const url = `${PROXY_BASE}?type=${type}&keyword=${encodeURIComponent(keyword.trim())}`;
-    const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) throw new Error(`bangumi http ${res.status}`);
+    const res = await fetch(`${API_URL}?limit=24`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        keyword: keyword.trim(),
+        filter: { type: [type] },
+      }),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`bgm http ${res.status}`);
     const data = await res.json();
     return normalize(data, catKey);
   } finally {
@@ -44,32 +50,31 @@ export async function searchBangumi(catKey, keyword, { signal, timeout = 4500 } 
 }
 
 function normalize(data, catKey) {
-  // 代理返回结构兼容多种：可能是 { results: n, list: [] } 或 [] 或 { data: [] }
-  let list = [];
-  if (Array.isArray(data)) list = data;
-  else if (Array.isArray(data?.list)) list = data.list;
-  else if (Array.isArray(data?.data)) list = data.data;
-  else if (Array.isArray(data?.results)) list = data.results;
+  const list = Array.isArray(data?.data) ? data.data : [];
   return list
-    .filter((it) => it && (it.id || it.subject_id))
-    .slice(0, 36)
+    .filter((it) => it && it.id)
+    .slice(0, 24)
     .map((it) => bangumiItemToWork(it, catKey));
 }
 
 function bangumiItemToWork(it, catKey) {
-  const id = it.id || it.subject_id;
-  const title = it.name_cn || it.name || it.title || '未命名';
+  const id = it.id;
+  const title = it.name_cn || it.name || '未命名';
   const subtitle = it.name && it.name_cn && it.name !== it.name_cn ? it.name : '';
-  const cover = bestCover(it);
+  const cover = proxyCover(bestCover(it));
   return { id: `bgm-${id}`, bgmId: id, title, subtitle, cover, source: 'bangumi', catKey };
 }
 
 function bestCover(it) {
   const img = it.images || {};
-  return (
-    img.large || img.common || img.medium || img.small || img.grid ||
-    it.cover || it.image || ''
-  );
+  return img.large || it.image || img.common || img.medium || img.small || img.grid || '';
+}
+
+function proxyCover(url) {
+  if (!url) return '';
+  const stripped = url.replace(/^https?:\/\//, '');
+  // wsrv.nl 提供跨域允许的图片代理；同时压到 480 宽 + jpg 80 减小体积
+  return `${IMG_PROXY}${encodeURIComponent(stripped)}&w=480&output=jpg&q=82`;
 }
 
 export { TYPE_BY_CAT };
