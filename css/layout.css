@@ -1,0 +1,111 @@
+.app-shell {
+  position: relative;
+  margin: 0 auto;
+  max-width: 480px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(72px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(251, 247, 244, 0.8);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid rgba(236, 236, 238, 0.6);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.brand-mark {
+  font-size: 22px;
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  padding: var(--space-4) var(--space-4) var(--space-6);
+}
+
+.stage {
+  animation: fadeUp 320ms ease both;
+}
+
+.stage[hidden] {
+  display: none;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stage-intro {
+  margin: var(--space-2) 0 var(--space-5);
+}
+
+.stage-intro.compact {
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+.stage-title {
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.stage-sub {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  padding-bottom: calc(var(--space-3) + var(--safe-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  background: linear-gradient(to top, rgba(251, 247, 244, 0.95) 60%, rgba(251, 247, 244, 0));
+  backdrop-filter: saturate(180%) blur(8px);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
+}
+
+.app-footer .btn {
+  flex: 1;
+  height: 48px;
+}
+
+.app-footer .btn-ghost {
+  flex: 0 0 96px;
+}

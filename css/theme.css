@@ -1,0 +1,67 @@
+:root {
+  /* B站主色 */
+  --color-primary: #FB7299;
+  --color-primary-soft: #FFE2EC;
+  --color-primary-deep: #E14D7A;
+  --color-accent: #00A1D6;
+  --color-accent-soft: #DCF1FA;
+
+  /* 中性色 */
+  --color-bg: #FBF7F4;
+  --color-bg-card: #FFFFFF;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-muted: #F4F4F6;
+  --color-line: #ECECEE;
+  --color-text: #18191C;
+  --color-text-muted: #61666D;
+  --color-text-faint: #9499A0;
+  --color-success: #4FC08D;
+  --color-warning: #F6A100;
+
+  /* 字体 */
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Heiti SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "PingFang SC", "Microsoft YaHei", "Heiti SC", sans-serif;
+
+  /* 圆角 */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  /* 间距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(24, 25, 28, 0.05);
+  --shadow-md: 0 8px 28px rgba(24, 25, 28, 0.08);
+  --shadow-lg: 0 16px 40px rgba(24, 25, 28, 0.18);
+
+  /* 安全区 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  background-image:
+    radial-gradient(circle at 100% 0%, rgba(251, 114, 153, 0.18), transparent 40%),
+    radial-gradient(circle at 0% 100%, rgba(0, 161, 214, 0.12), transparent 45%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-deep);
+}

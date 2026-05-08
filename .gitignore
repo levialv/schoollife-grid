@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Editor / tooling
+.vscode/
+.idea/
+
+# Project-local artifacts (Claude session, dev screenshots)
+.claude/
+.dev/
+
+# Logs
+*.log
