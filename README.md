@@ -5,7 +5,7 @@
 参考开源项目：
 - itorr/anime-grid（交互模式）
 - SomiaWhiteRing/my9（产品概念）
-- 题材数据：Bangumi.tv（动画/电影/游戏，经 lab.magiconch.com 代理） + 静态 B站百大 UP 主名单
+- 题材数据：Bangumi.tv v0 API（动画/电影/游戏） + B 站搜索（UP 主，需自建 Cloudflare Worker 中转）+ 静态百大 UP 主名单
 
 ## 启动
 
@@ -26,7 +26,7 @@ npx http-server -p 5173
 
 1. 阶段 1：选择当前生命阶段（决定网格列数）
 2. 阶段 2：多选想回顾的题材（决定网格行数）
-3. 阶段 3：逐格点击，从精选推荐里挑作品；动画/电影/游戏可输入关键字搜 Bangumi。每列下方可填一个一起追的朋友昵称（可跳过）
+3. 阶段 3：逐格点击，从精选推荐里挑作品；动画/电影/游戏可搜 Bangumi，UP 主可搜 B 站（前提是部署了 `worker/`，否则只在本地名单里搜）。每列下方可填一个一起追的朋友昵称（可跳过）
 4. 阶段 4：自动生成 750×N 的分享卡，可保存图片 / 复制文案 / 重新开始
 
 刷新页面会保留已填内容（localStorage），可随时回到第 1 步。
@@ -53,7 +53,8 @@ schoollife-grid/
 │   │   ├── seed-uppers.js         B站百大 UP 主静态名单
 │   │   └── seeds.js               聚合：按 catKey/stageKey 取数据 + 关键词过滤
 │   ├── api/
-│   │   └── bangumi.js             Bangumi 搜索（lab.magiconch.com 代理 + 超时降级）
+│   │   ├── bangumi.js             Bangumi v0 搜索（封面经 wsrv.nl 代理回 CORS 头）
+│   │   └── bilibili.js            B 站 UP 主搜索客户端（调自建 Worker）
 │   ├── components/
 │   │   ├── stage1-life.js         阶段1：生命阶段单选
 │   │   ├── stage2-cats.js         阶段2：题材多选
@@ -64,13 +65,45 @@ schoollife-grid/
 │       └── canvas-render.js       Canvas 绘制 750×N 分享图（含跨域封面回退）
 ├── assets/
 │   └── icons/                     题材/装饰图标位（占位目录）
+├── worker/                        Cloudflare Worker：B 站搜索代理（CORS + WBI 签名 + buvid）
+│   ├── worker.js
+│   └── wrangler.toml
 └── 生涯内容表需求.md
 ```
+
+## B 站 UP 主搜索（可选，需自建 Cloudflare Worker）
+
+B 站的 `api.bilibili.com/x/web-interface/wbi/search/type` 不返回 CORS 头，浏览器直连一律 `Failed to fetch`，且要求 WBI 签名 + `buvid3` 反爬 cookie。`worker/` 里的 Cloudflare Worker 把这些都封到了服务端：
+
+- `GET /api/upper-search?keyword=xx` → 自动拉 `nav` 拿 WBI key、拉 `frontend/finger/spi` 拿 buvid，签好 `w_rid` 后转发给 B 站，最后归一化成 `{ mid, name, sign, fans, videos, face, isUp, level }` 回吐。
+- 头像最终在前端再走一层 `wsrv.nl` 代理拿 CORS 头，保证 canvas `toDataURL` 不会污染。
+
+部署步骤：
+
+```bash
+# 一次性安装 wrangler（任意目录）
+npm i -g wrangler
+# 或不全局装：每次跑 npx wrangler ... 也行
+
+# 登录 Cloudflare（浏览器扫一下）
+wrangler login
+
+# 部署
+cd worker
+wrangler deploy
+# 部署完会打印一行类似：
+#   Published schoollife-grid-bili (... )
+#   https://schoollife-grid-bili.<account>.workers.dev
+```
+
+把上面那个 `https://...workers.dev` 地址写到 `js/api/bilibili.js` 顶部的 `DEFAULT_WORKER_URL` 常量，重新 push GitHub Pages 即生效。临时调试可在浏览器 console 里 `window.__BILI_WORKER_URL__ = 'https://...'` 临时覆盖。
+
+不部署 Worker 时，UP 主分类自动降级为「仅搜本地百大 UP 主名单」，其余流程照常。免费套餐 100k 次/天，对 demo 完全够用。
 
 ## 设计要点
 
 - **状态单一来源**：`js/state.js` 持有 `appState`，所有组件通过 `getState/setState/subscribe` 操作，自动持久化到 `localStorage`。
 - **阶段路由**：`js/app.js` 里 `gotoStep(n)` 控制 `<section data-stage="n">` 的显隐 + 步骤条 + 底部按钮文案/启用态。
-- **picker 防抖与降级**：搜索 320ms 防抖，立刻反馈本地命中，再异步追加 Bangumi 搜索结果；Bangumi 失败/超时时不影响已展示的本地结果。
+- **picker 防抖与降级**：搜索 320ms 防抖，立刻反馈本地命中，再异步追加远端结果（Bangumi 或自建 Worker → B 站）；远端失败/超时时不影响已展示的本地结果。
 - **Canvas 跨域回退**：远程封面用 `crossOrigin='anonymous'` + 4.5s 超时；失败时落到色块 + emoji 卡，保证渲染永远成功，不阻塞分享。
 - **朋友昵称文案动态拼接**：阶段 4 检查 `state.friends` 中所有非空昵称，按出现顺序拼为 `@xx、@yy`，分享文案自动改为「发给 @xx、@yy 试试」。

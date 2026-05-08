@@ -1,0 +1,6 @@
+name = "schoollife-grid-bili"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+# 部署后，免费域是 https://schoollife-grid-bili.<你的-cf-账号>.workers.dev
+# 想换名字直接改 name 字段；要绑定自定义域名再加 [routes]。

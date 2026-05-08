@@ -1,7 +1,8 @@
-// 通用底部弹层：浏览精选 + 搜索 Bangumi（UP主类只在静态库内搜）
+// 通用底部弹层：浏览精选 + 搜索（番剧/电影/游戏走 Bangumi，UP 主走自建 Worker → B 站）
 import { categoryByKey } from '../data/categories.js';
 import { recommendByStage, searchSeeds } from '../data/seeds.js';
 import { searchBangumi, isBangumiCategory } from '../api/bangumi.js';
+import { searchBilibiliUpper, isBilibiliUpperEnabled } from '../api/bilibili.js';
 
 const root = document.getElementById('pickerRoot');
 const titleEl = document.getElementById('pickerTitle');
@@ -47,9 +48,7 @@ export function openPicker(ctx) {
   const cat = categoryByKey(ctx.catKey);
   const stageHint = ctx.stageLabel ? ` · ${ctx.stageLabel}` : '';
   titleEl.textContent = `选 ${cat?.shortLabel || '作品'}${stageHint}`;
-  searchEl.placeholder = isBangumiCategory(ctx.catKey)
-    ? `输入${cat?.shortLabel || '作品'}名搜索 Bangumi…`
-    : `搜 UP 主名（仅本地）`;
+  searchEl.placeholder = pickerPlaceholder(ctx.catKey, cat);
   showRecommendations();
   root.hidden = false;
   // 等过渡完成后聚焦避免被半屏抖动
@@ -85,18 +84,20 @@ async function runSearch(keyword) {
   const seedHits = searchSeeds(context.catKey, keyword).map(seedToWork);
   lastResults = seedHits;
   renderList(seedHits);
-  setStatus(isBangumiCategory(context.catKey) ? '检索 Bangumi 中…' : seedHits.length ? null : '没找到匹配项');
 
-  if (!isBangumiCategory(context.catKey)) {
+  const remoteSrc = pickRemoteSource(context.catKey);
+  setStatus(remoteSrc ? `检索 ${remoteSrc.label} 中…` : seedHits.length ? null : '没找到匹配项');
+
+  if (!remoteSrc) {
     if (!seedHits.length) setStatus('UP 主名单内没找到，要不要换个关键字～');
     return;
   }
 
-  // 2) 异步追加 Bangumi 结果
+  // 2) 异步追加远端结果
   if (abortCtrl) abortCtrl.abort();
   abortCtrl = new AbortController();
   try {
-    const remote = await searchBangumi(context.catKey, keyword, { signal: abortCtrl.signal });
+    const remote = await remoteSrc.search(keyword, { signal: abortCtrl.signal });
     if (!context) return;
     if (lastQuery !== keyword) return; // 已被新搜索取代
     const merged = mergeUnique(seedHits, remote);
@@ -106,9 +107,25 @@ async function runSearch(keyword) {
     else setStatus(null);
   } catch (err) {
     if (err?.name === 'AbortError') return;
-    console.warn('[picker] bangumi search failed:', err);
+    console.warn(`[picker] ${remoteSrc.label} search failed:`, err);
     setStatus('网络抖了一下，先用本地结果～');
   }
+}
+
+function pickerPlaceholder(catKey, cat) {
+  if (isBangumiCategory(catKey)) return `输入${cat?.shortLabel || '作品'}名搜索 Bangumi…`;
+  if (catKey === 'upper' && isBilibiliUpperEnabled()) return '搜 UP 主名（B 站）';
+  return '搜 UP 主名（仅本地）';
+}
+
+function pickRemoteSource(catKey) {
+  if (isBangumiCategory(catKey)) {
+    return { label: 'Bangumi', search: (kw, opts) => searchBangumi(catKey, kw, opts) };
+  }
+  if (catKey === 'upper' && isBilibiliUpperEnabled()) {
+    return { label: 'B 站', search: (kw, opts) => searchBilibiliUpper(kw, opts) };
+  }
+  return null;
 }
 
 function mergeUnique(seedList, remoteList) {
