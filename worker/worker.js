@@ -13,10 +13,16 @@ const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
+// WBI key 硬编码（bilibili 大约半天~一天轮换一次，过期后去 nav 接口拉新的兜底）
+// 更新方式：本地 curl https://api.bilibili.com/x/web-interface/nav 取 wbi_img.img_url/sub_url 的 basename
+const HARD_WBI = {
+  imgKey: '7cd084941338484aae1ad9425b84077c',
+  subKey: '4932caff0ff746eab6f01bf08b70ac45',
+};
+
 // per-isolate 缓存，CF Worker 同实例之间共用；过期重新拉
-const cache = { wbi: null, cookie: null };
+const cache = { wbi: null };
 const KEY_TTL_MS = 6 * 3600 * 1000;
-const COOKIE_TTL_MS = 6 * 3600 * 1000;
 
 export default {
   async fetch(request) {
@@ -50,15 +56,13 @@ function jsonResp(body, status = 200) {
 }
 
 async function searchUpper(keyword, page) {
-  const cookie = await getCookie();
-  const { imgKey, subKey } = await getWbiKeys(cookie);
+  const { imgKey, subKey } = await getWbiKeys();
   const params = { keyword, search_type: 'bili_user', page };
   const signed = encWbi(params, imgKey, subKey);
   const target = `https://api.bilibili.com/x/web-interface/wbi/search/type?${signed}`;
   const resp = await fetch(target, {
     headers: {
       'User-Agent': UA,
-      Cookie: cookie,
       Referer: 'https://search.bilibili.com/',
       Accept: 'application/json, text/plain, */*',
     },
@@ -66,8 +70,6 @@ async function searchUpper(keyword, page) {
   if (!resp.ok) throw new Error(`bilibili http ${resp.status}`);
   const data = await resp.json();
   if (data.code !== 0) {
-    // 大概率是 cookie/签名失效，丢掉缓存让下次重新拉
-    cache.cookie = null;
     cache.wbi = null;
     throw new Error(`bili code ${data.code} ${data.message || ''}`);
   }
@@ -92,25 +94,21 @@ function normalizeUser(u) {
   };
 }
 
-async function getCookie() {
-  if (cache.cookie && Date.now() < cache.cookie.expires) return cache.cookie.value;
-  const resp = await fetch('https://api.bilibili.com/x/frontend/finger/spi', {
-    headers: { 'User-Agent': UA, Referer: 'https://www.bilibili.com/' },
-  });
-  if (!resp.ok) throw new Error(`spi http ${resp.status}`);
-  const data = await resp.json();
-  const b3 = data?.data?.b_3;
-  const b4 = data?.data?.b_4;
-  if (!b3) throw new Error('spi missing b_3');
-  const value = `buvid3=${b3}; buvid4=${b4 || ''}`;
-  cache.cookie = { value, expires: Date.now() + COOKIE_TTL_MS };
-  return value;
-}
-
-async function getWbiKeys(cookie) {
+async function getWbiKeys() {
   if (cache.wbi && Date.now() < cache.wbi.expires) return cache.wbi;
+  // 先用硬编码 key，省去被风控的 nav 请求
+  if (HARD_WBI.imgKey && HARD_WBI.subKey) {
+    const out = { ...HARD_WBI, expires: Date.now() + KEY_TTL_MS };
+    cache.wbi = out;
+    return out;
+  }
+  // 兜底：如果硬编码被清空，尝试走 nav（大概率 412，仅作保留）
   const resp = await fetch('https://api.bilibili.com/x/web-interface/nav', {
-    headers: { 'User-Agent': UA, Cookie: cookie, Referer: 'https://www.bilibili.com/' },
+    headers: {
+      'User-Agent': UA,
+      Referer: 'https://www.bilibili.com/',
+      Accept: 'application/json, text/plain, */*',
+    },
   });
   if (!resp.ok) throw new Error(`nav http ${resp.status}`);
   const data = await resp.json();

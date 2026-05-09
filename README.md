@@ -71,34 +71,13 @@ schoollife-grid/
 └── 生涯内容表需求.md
 ```
 
-## B 站 UP 主搜索（可选，需自建 Cloudflare Worker）
+## B 站 UP 主搜索（已改为纯本地）
 
-B 站的 `api.bilibili.com/x/web-interface/wbi/search/type` 不返回 CORS 头，浏览器直连一律 `Failed to fetch`，且要求 WBI 签名 + `buvid3` 反爬 cookie。`worker/` 里的 Cloudflare Worker 把这些都封到了服务端：
+> **2025-05 更新**：Bilibili 已全面封锁 Cloudflare Workers 出口 IP（`api.bilibili.com` 全线返回 412），因此本项目不再依赖线上 Worker。UP 主分类现采用**扩展本地种子名单**（~190 位历年百大 + 分区顶流），搜索体验覆盖小学到老登全阶段。
 
-- `GET /api/upper-search?keyword=xx` → 自动拉 `nav` 拿 WBI key、拉 `frontend/finger/spi` 拿 buvid，签好 `w_rid` 后转发给 B 站，最后归一化成 `{ mid, name, sign, fans, videos, face, isUp, level }` 回吐。
-- 头像最终在前端再走一层 `wsrv.nl` 代理拿 CORS 头，保证 canvas `toDataURL` 不会污染。
+如需自行接入其它平台（Vercel Edge、Deno Deploy、腾讯云函数等），可参考 `worker/worker.js` 里的 WBI 签名实现，把部署后的地址填到 `js/api/bilibili.js` 的 `DEFAULT_WORKER_URL` 即可。
 
-部署步骤：
-
-```bash
-# 一次性安装 wrangler（任意目录）
-npm i -g wrangler
-# 或不全局装：每次跑 npx wrangler ... 也行
-
-# 登录 Cloudflare（浏览器扫一下）
-wrangler login
-
-# 部署
-cd worker
-wrangler deploy
-# 部署完会打印一行类似：
-#   Published schoollife-grid-bili (... )
-#   https://schoollife-grid-bili.<account>.workers.dev
-```
-
-把上面那个 `https://...workers.dev` 地址写到 `js/api/bilibili.js` 顶部的 `DEFAULT_WORKER_URL` 常量，重新 push GitHub Pages 即生效。临时调试可在浏览器 console 里 `window.__BILI_WORKER_URL__ = 'https://...'` 临时覆盖。
-
-不部署 Worker 时，UP 主分类自动降级为「仅搜本地百大 UP 主名单」，其余流程照常。免费套餐 100k 次/天，对 demo 完全够用。
+不填 Worker 地址时，UP 主分类自动降级为「仅搜本地 UP 主名单」，其余流程照常。
 
 ## 设计要点
 

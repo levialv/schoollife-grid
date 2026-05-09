@@ -5,6 +5,8 @@ import { categoryByKey } from '../data/categories.js';
 
 // ★ 部署 worker/ 后把这里改成实际的 workers.dev 地址（不要带尾部斜杠）
 //   比如：'https://schoollife-grid-bili.your-account.workers.dev'
+// Bilibili 已全面封锁 Cloudflare Workers 出口 IP（412），暂时停用 Worker 搜索。
+// 如需换用 Vercel / Deno Deploy 等其他平台，可把地址填回来。
 const DEFAULT_WORKER_URL = '';
 
 const IMG_PROXY = 'https://wsrv.nl/?url=';
