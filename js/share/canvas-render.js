@@ -107,7 +107,7 @@ export async function renderToCanvas(canvas, state) {
   ctx.font = `700 36px ${FONT}`;
   ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
-  ctx.fillText('我的生涯内容表', PAD + 18, 28);
+  ctx.fillText('我的数字成长档案', PAD + 18, 28);
 
   // 4. 副标题
   ctx.fillStyle = COLORS.textMuted;
@@ -212,7 +212,7 @@ export async function renderToCanvas(canvas, state) {
   ctx.font = `500 14px ${FONT}`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText('🎉 我的生涯内容表 · @bilibili', PAD, footerY + 24);
+  ctx.fillText('🎉 我的数字成长档案 · @bilibili', PAD, footerY + 24);
   ctx.fillStyle = COLORS.textFaint;
   ctx.font = `400 12px ${FONT}`;
   ctx.fillText('扫码或长按识别 → 生成你的同款', PAD, footerY + 50);

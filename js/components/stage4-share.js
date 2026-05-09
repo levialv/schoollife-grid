@@ -53,13 +53,13 @@ function buildShareText(friends, stageLabel) {
   if (names.length === 0) {
     return {
       headline: '长按图片保存，发到动态/小红书让朋友给你接龙。',
-      body: `我整理了我的「${stageLabel}」生涯内容表，从小学到现在，把陪我长大的番剧/电影/游戏/UP主都按学籍阶段排了一遍。\n\n你的版本会是什么样？\n\n#我的学籍×精神食粮 #生涯内容表 #毕业季`,
+      body: `我整理了我的「${stageLabel}」数字成长档案，从小学到现在，把陪我长大的番剧/电影/游戏/UP主都按学籍阶段排了一遍。\n\n你的版本会是什么样？\n\n#我的学籍×精神食粮 #数字成长档案 #毕业季`,
     };
   }
   const namesText = names.join('、');
   return {
     headline: `保存图片，发给 ${namesText}，看看 ta 还记得几个。`,
-    body: `${namesText} —— 我把我的「${stageLabel}」生涯内容表整理出来啦。\n这一格格里都是我们一起追过的番、玩过的游戏。\n\n你那一版是什么样？发我看看？\n\n#我的学籍×精神食粮 #生涯内容表 #毕业季`,
+    body: `${namesText} —— 我把我的「${stageLabel}」数字成长档案整理出来啦。\n这一格格里都是我们一起追过的番、玩过的游戏。\n\n你那一版是什么样？发我看看？\n\n#我的学籍×精神食粮 #数字成长档案 #毕业季`,
   };
 }
 
@@ -69,7 +69,7 @@ async function onDownload(canvas, state) {
     if (!blob) throw new Error('toBlob returned null');
     const stage = lifestageByKey(state.lifeStage);
     const stageTag = stage ? stage.label : 'me';
-    const fileName = `生涯内容表_${stageTag}_${stamp()}.png`;
+    const fileName = `数字成长档案_${stageTag}_${stamp()}.png`;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
